@@ -1,3 +1,19 @@
+try:
+  import cbsodata                                           # Library for downloading CBS opendata via odata-feed (API)
+except:
+  !pip install cbsodata
+  import cbsodata
+
+import requests
+import pandas as pd                                         # Library to work with dataframes
+from string import punctuation                              # String manipulation
+import altair as alt                                        # Create interactive charts and maps
+
+import seaborn as sns                                       # especially for pairplots
+import numpy as np                                          # fill diagonal...corr plot
+import matplotlib.pyplot as plt
+
+
 def strip_strings( df ):
   df_obj = df.select_dtypes(['object'])
   df[df_obj.columns] = df_obj.apply(lambda x: x.str.strip())
