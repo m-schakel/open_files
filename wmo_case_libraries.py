@@ -1,4 +1,5 @@
 import requests
+import cbsodata 
 import pandas as pd                                         # Library to work with dataframes
 from string import punctuation                              # String manipulation
 import altair as alt                                        # Create interactive charts and maps
