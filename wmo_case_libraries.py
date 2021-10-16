@@ -82,7 +82,7 @@ def get_cbs_data( datasets, filters, select ):
   df_total.columns = rename_list
 
   print( 'Remove all leading and trailing spaces...')
-  df_total = wmo.strip_strings(df_total)
+  df_total = strip_strings(df_total)
   
   print( f'Ready, size: {df_total.shape}' )
 
