@@ -8,6 +8,16 @@ import seaborn as sns                                       # especially for pai
 import numpy as np                                          # fill diagonal...corr plot
 import matplotlib.pyplot as plt
 
+import sklearn
+from sklearn.model_selection import train_test_split, cross_validate, cross_val_score, cross_val_predict, GridSearchCV, KFold, StratifiedKFold
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
+from sklearn.compose import make_column_transformer, ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import make_pipeline, Pipeline 
+from sklearn.linear_model import LinearRegression, LassoCV, Lasso, RidgeCV
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.metrics import mean_squared_error
+
 
 def strip_strings( df ):
   df_obj = df.select_dtypes(['object'])
