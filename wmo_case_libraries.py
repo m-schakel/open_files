@@ -106,3 +106,45 @@ def lower_memory_usage(df):
     print(f"Memory-usage after: {df.memory_usage().sum()}")
 
     return df
+
+
+def get_corop_lists(url):
+
+    corop_matrix = pd.read_excel(url, index_col=None)
+
+    corop_matrix = corop_matrix.loc[:,
+                                    ['GM2017', 'GM2018', 'GM2019', 'GM2020']]
+    corop_matrix.rename(columns={'GM2017': 'gm_code_origin'}, inplace=True)
+
+    # Unpivot matrix to a list using het pd.melt function
+    corop_list = pd.melt(corop_matrix,
+                         id_vars=['gm_code_origin'],
+                         var_name='year',
+                         value_name='gm_code_new')
+
+    # Remove 'GM' in front of the year and add GM in front of both the orginal municipality code and the new one
+    corop_list['year'] = corop_list['year'].str[2:]
+    corop_list['gm_code_origin'] = 'GM' + corop_list['gm_code_origin'].astype(
+        str).apply(lambda x: '{0:0>4}'.format(x))
+    corop_list['gm_code_new'] = 'GM' + corop_list['gm_code_new'].astype(
+        str).apply(lambda x: '{0:0>4}'.format(x))
+
+    # Remove municipalities where no reorganization has taken place
+    corop_list = corop_list[
+        corop_list['gm_code_origin'] != corop_list['gm_code_new']]
+    corop_list.sort_values(by=['year', 'gm_code_origin'], inplace=True)
+    corop_list.drop_duplicates(inplace=True)
+
+    # Create list of unique municipality codes and names
+    df_cbs_70072ned = get_cbs_data(
+        datasets={0000: '70072ned'},
+        filters=
+        "startswith(RegioS,'GM') and Perioden ge '2017' and Perioden le '2020'",
+        select={
+            'KoppelvariabeleRegioCode_306': 'mun_code',
+            'RegioS': 'mun_name'
+        })
+
+    df_cbs_70072ned = df_cbs_70072ned.drop_duplicates().dropna()
+
+    return (corop_list, df_cbs_70072ned)
