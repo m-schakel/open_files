@@ -123,7 +123,7 @@ def get_corop_lists(url):
                          value_name='gm_code_new')
 
     # Remove 'GM' in front of the year and add GM in front of both the orginal municipality code and the new one
-    corop_list['year'] = corop_list['year'].str[2:]
+    corop_list['year'] = corop_list['year'].str[2:].astype(int)
     corop_list['gm_code_origin'] = 'GM' + corop_list['gm_code_origin'].astype(
         str).apply(lambda x: '{0:0>4}'.format(x))
     corop_list['gm_code_new'] = 'GM' + corop_list['gm_code_new'].astype(
