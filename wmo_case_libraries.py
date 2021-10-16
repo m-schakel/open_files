@@ -1,9 +1,3 @@
-try:
-  import cbsodata                                           # Library for downloading CBS opendata via odata-feed (API)
-except:
-  !pip install cbsodata
-  import cbsodata
-
 import requests
 import pandas as pd                                         # Library to work with dataframes
 from string import punctuation                              # String manipulation
