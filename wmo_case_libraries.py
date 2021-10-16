@@ -1,3 +1,13 @@
+#-----------------------------------------------------------------------------------------------------------------------#
+# JADS - WMO Case - Group 2 (year 2021)
+#-----------------------------------------------------------------------------------------------------------------------#
+# Set of procedures used in the jupyter notebook for the prediction model in regards to Social Support Act
+#
+#-----------------------------------------------------------------------------------------------------------------------#
+# Author : Michiel Schakel
+# Date   : October 2021
+#-----------------------------------------------------------------------------------------------------------------------#
+
 import requests
 import cbsodata
 import pandas as pd  # Library to work with dataframes
@@ -19,6 +29,9 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error
 
 
+#-----------------------------------------------------------------------------------------------------------------------#
+# strip_strings
+#-----------------------------------------------------------------------------------------------------------------------#
 def strip_strings(df):
     df_obj = df.select_dtypes(["object"])
     df[df_obj.columns] = df_obj.apply(lambda x: x.str.strip())
@@ -26,6 +39,9 @@ def strip_strings(df):
     return df
 
 
+#-----------------------------------------------------------------------------------------------------------------------#
+# get_cbs_metadata
+#-----------------------------------------------------------------------------------------------------------------------#
 def get_cbs_metadata(dataset):
     # Purpose: Getting and printing CBS metadata for a specific datasets (e.g. 84751NED)
     #          Info and available datasets: https://opendata.cbs.nl/statline/portal.html?_la=nl
@@ -45,6 +61,9 @@ def get_cbs_metadata(dataset):
     return l_metadata
 
 
+#-----------------------------------------------------------------------------------------------------------------------#
+# get_cbs_data
+#-----------------------------------------------------------------------------------------------------------------------#
 def get_cbs_data(datasets, filters, select):
     # Purpose: Getting CBS data for several similar datasets (e.g. same dataset over several years)
     # Example of execution: check_columns( { 2019: '84753NED', 2020: '84908NED' } )
@@ -93,6 +112,9 @@ def get_cbs_data(datasets, filters, select):
     return df_total
 
 
+#-----------------------------------------------------------------------------------------------------------------------#
+# lower_memory_usage
+#-----------------------------------------------------------------------------------------------------------------------#
 def lower_memory_usage(df):
     print(f"Memory-usage before: {df.memory_usage().sum()}")
 
@@ -108,6 +130,9 @@ def lower_memory_usage(df):
     return df
 
 
+#-----------------------------------------------------------------------------------------------------------------------#
+# get_corop_lists
+#-----------------------------------------------------------------------------------------------------------------------#
 def get_corop_lists(url):
 
     corop_matrix = pd.read_excel(url, index_col=None)
@@ -132,7 +157,7 @@ def get_corop_lists(url):
     # Remove municipalities where no reorganization has taken place
     corop_list = corop_list[
         corop_list['gm_code_origin'] != corop_list['gm_code_new']]
-    corop_list.sort_values(by=['year', 'gm_code_origin'], inplace=True)
+    corop_list.sort_values(by=['year', 'gm_code_new'], inplace=True)
     corop_list.drop_duplicates(inplace=True)
 
     # Create list of unique municipality codes and names
@@ -148,3 +173,65 @@ def get_corop_lists(url):
     df_cbs_70072ned = df_cbs_70072ned.drop_duplicates().dropna()
 
     return (corop_list, df_cbs_70072ned)
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# remap_municipalities
+#-----------------------------------------------------------------------------------------------------------------------#
+def remap_municipalities(df_source, mun_code_col, mun_name_col, year_col,
+                         df_corop_list, df_municipalities, do_remap):
+    # Purpose: Remap municipalities that have been merged. Based on the COROP matrix given by the CBS, figures from
+    #          municipalites that have been merged will be remapped to the new municipalitie.
+    # Example of execution: remap_municipalities( cbs_data_merged, 'mun_code', 'mun_name', 'year', df_corop_list, df_municipalities, DO_REMAP )
+    # Arguments:
+    #   df_source         = The original dataframe
+    #   mun_code_col      = The name of the column with the municipality codes
+    #   mun_name_col      = The name of the column with the names of municipality
+    #   year_col          = The name of the column with the years
+    #   df_corop_list     = Dataframe with per year the original municipality code and the new one
+    #   df_municipalities = Dataframe with code and name of all municipalities
+    #   do_remap          = True or False whether the merged need to take place or note
+    # Returns:
+    #   df_total          = The remapped dataframe.
+
+    df = df_source.copy()
+
+    if not do_remap:
+        print(f'Remapping skipped!')
+    else:
+        prev_year = 0000
+        for index, row in df_corop_list.iterrows():
+            # Print header for each new year
+            if prev_year != row['year']:
+                prev_year = row['year']
+                print(
+                    f"\nREORGANIZATIONS IN YEAR: {row['year']}\n-----------------------------"
+                )
+                print("Old".ljust(49) + "New")
+
+            # Print code and name from both the original municipality and the destination.
+            print(
+                f"{row['gm_code_origin']} - {df_municipalities[df_municipalities['mun_code']==row['gm_code_origin']]['mun_name'].item().ljust(40) }",
+                end='')
+            print(
+                f"{row['gm_code_new']} - {df_municipalities[df_municipalities['mun_code']==row['gm_code_new']]['mun_name'].item() }"
+            )
+
+            # Remap code of municipality
+            df.loc[(df[mun_code_col] == row['gm_code_origin']) &
+                   (df[year_col] <= row['year']),
+                   mun_code_col] = row['gm_code_new']
+
+            # Remap name of municipality
+            val = df_municipalities[df_municipalities['mun_code'] ==
+                                    row['gm_code_new']]['mun_name'].item()
+
+            # Since the mun_name column is a categorie you need to add the new name as category first.
+            # Otherwise you will get the error: "Cannot setitem on a Categorical with a new category, set the categories first"
+            if val not in df[mun_name_col].cat.categories:
+                df[mun_name_col].cat.add_categories(val, inplace=True)
+
+            df.loc[(df[mun_code_col] == row['gm_code_new']),
+                   mun_name_col] = val
+
+    return (df)
