@@ -234,4 +234,9 @@ def remap_municipalities(df_source, mun_code_col, mun_name_col, year_col,
             df.loc[(df[mun_code_col] == row['gm_code_new']),
                    mun_name_col] = val
 
+            # Remove unused categories. If you do not remove them you'll issues during the groupby operations lateron.
+            # This makes them appear again and will create extra null-records in your dataframe.
+            df[mun_code_col] = df[mun_code_col].cat.remove_unused_categories()
+            df[mun_name_col] = df[mun_name_col].cat.remove_unused_categories()
+
     return (df)
