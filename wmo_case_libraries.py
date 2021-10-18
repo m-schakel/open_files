@@ -28,6 +28,28 @@ from sklearn.linear_model import LinearRegression, LassoCV, Lasso, RidgeCV
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error
 
+INTEGER_TYPES = ('int8', 'int16', 'int32', 'int64', 'uint8', 'uint16',
+                 'uint32', 'uint64')
+FLOAT_TYPES = ('float16', 'float32', 'float64')
+NUMERIC_TYPES = INTEGER_TYPES + FLOAT_TYPES
+
+A4_SIZE = (11.7, 8.3)
+A3_SIZE = (16.5, 11.7)
+JOINTPLOT_SIZE = 10
+
+
+class color:
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
+
 
 #-----------------------------------------------------------------------------------------------------------------------#
 # strip_strings
@@ -335,7 +357,6 @@ def print_column_details(df, column_details, y_col):
                            split=True,
                            inner="quart",
                            linewidth=1)
-
         elif row['type'].name in NUMERIC_TYPES:
             ax = sns.jointplot(x=df[row['name']],
                                y=y,
