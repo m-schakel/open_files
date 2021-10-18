@@ -240,3 +240,177 @@ def remap_municipalities(df_source, mun_code_col, mun_name_col, year_col,
             df[mun_name_col] = df[mun_name_col].cat.remove_unused_categories()
 
     return (df)
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# check_columns
+#-----------------------------------------------------------------------------------------------------------------------#
+def check_columns(df, y_col, threshold_many_NA):
+    # Purpose: Function to gather details of all predictors and whether a variable contains (a lot of) null values
+    # Example of execution: check_columns( df, 'SalesPrice', 0.2)
+    # Arguments:
+    #   df                   = dataframe with all predictors (X's) and the response (Y)
+    #   y_col                = name of the response variable in the dataframe
+    #   threshold_many_NA    = threshold (%) to decide whether a column contains many null values
+    # Returns:
+    #   column_details       = dictionary with details (e.g. name, type, frequency) of all predictors
+    #   columns_with_many_NA = list of column names of columns containing a log (> threshold) null values
+    #   columns_with_NA      = list of column names of columns containing 1 or more null values
+
+    y = df[y_col]
+
+    # Create list of dictionaries with attributes of all columns in the dataframe
+    column_details = [{
+        'name': column,
+        'anyNA': df[column].isna().any(),
+        'type': df[column].dtypes,
+        'frequency': df[column].value_counts().count(),
+        'countNA': df[column].isna().sum(),
+        'percNA': df[column].isna().sum() / len(df)
+    } for column in df.drop([y_col], axis=1)]
+
+    # Additional code-examples:
+    # Print dictionary of specific column: print( [ d for d in column_details if d['name']=='Alley' ][0] )
+    # Print attribute of dictionary of specific column: print( [ d for d in column_details if d['name']=='Alley' ][0]['percNA'] )
+
+    # Create 4 lists of column names
+    columns_with_many_NA = [
+        d['name'] for d in column_details if d['percNA'] > threshold_many_NA
+    ]
+
+    columns_with_NA = [d['name'] for d in column_details if d['anyNA']]
+
+    columns_numerical = [
+        d['name'] for d in column_details if d['type'] in NUMERIC_TYPES
+    ]
+
+    columns_categorical = [
+        d['name'] for d in column_details if d['type'].name == 'category'
+    ]
+
+    columns_numerical_with_NA = [
+        d['name'] for d in column_details
+        if d['anyNA'] and d['type'] in NUMERIC_TYPES
+    ]
+
+    columns_categorical_with_NA = [
+        d['name'] for d in column_details
+        if d['anyNA'] and d['type'].name == 'category'
+    ]
+
+    return (column_details, columns_with_NA, columns_with_many_NA,
+            columns_numerical, columns_categorical, columns_numerical_with_NA,
+            columns_categorical_with_NA)
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# print_column_details
+#-----------------------------------------------------------------------------------------------------------------------#
+def print_column_details(df, column_details, y_col):
+    # Purpose: to print all details of the featurs including an boxplot or jointplot diagram
+    # Example of execution: print_column_details ( df, column_details, 'SalesPrice')
+    # Arguments:
+    #   df                   = dataframe with all predictors (X's) and the response (Y)
+    #   column_details       = A list of dictionaries with all details of the features,
+    #                          originates from the function check_colums and contains the details of all predictors
+    #   y_col                = name of the response variable in the dataframe
+
+    y = df[y_col]
+
+    # Print for all columns either a jointplot (numeric) or a boxflot (categorical)
+    for idx, row in enumerate(column_details):
+        print(
+            f"Column #    : {idx}\nColumn name : {color.RED + row['name'] + color.END}\nType        : {row['type']}\nNull values : {row['anyNA']} (#: {row['countNA']}, %: {row['percNA']:0.2%})\nFrequency   : {row['frequency']}\n"
+        )
+
+        if row['type'].name == 'category':
+            print('Categorie count:')
+            print(df[row['name']].value_counts().to_frame())
+
+            plt.figure(figsize=(11.7, 2 + row['frequency'] * 0.70))
+
+            sns.violinplot(data=df,
+                           y=df[row['name']].sort_values(ascending=True),
+                           x=y,
+                           split=True,
+                           inner="quart",
+                           linewidth=1)
+
+        elif row['type'].name in NUMERIC_TYPES:
+            ax = sns.jointplot(x=df[row['name']],
+                               y=y,
+                               kind='reg',
+                               height=JOINTPLOT_SIZE)
+
+        plt.show()
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# filter_dataframe
+#-----------------------------------------------------------------------------------------------------------------------#
+def filter_dataframe(df, filter_list):
+    # Purpose: Function to gather details of all predictors and whether a variable contains (a lot of) null values
+    # Arguments:
+    #   df                   = dataframe with all predictors (X's) and the response (Y)
+    #   filter_list          = list of dictionaries with the filterconditions
+    #                          Example: [ {"column":"A", "operand":">", "value":0 }, {"column":"B", "operand":"in", "value":2 }, {"column":"C", "operand":"<=", "value":1 } ]
+    #                          - Use one of the operands ['!=','==','<','>','<=','>=','in'] to filter based on value
+    #                          - Use the operand drop to drop a column. Value have to be set to True
+    #                          - Use the operand drop_col_list to drop a list of columns. Pass list of columns as dict-key "column". Set value to True
+    #                          - Use the operand drop_na to drop rows with null values bases on a list of columns. The list of columns is used as subset in dropna()
+    # Returns:
+    #   df                   = filtered dataframe
+
+    # Used as source: https://stackoverflow.com/questions/45925327/dynamically-filtering-a-pandas-dataframe
+
+    df_return = df.copy()
+
+    # Apply filter based on query
+    query = ' & '.join([
+        i['column'] + ' ' + i['operand'] + ' ' + str(i['value'])
+        for i in filter_list
+        if i['operand'] in ['!=', '==', '<', '>', '<=', '>=', 'in']
+    ])
+    if query:
+        df_return = df_return.query(query)
+
+    # Drop columns based on individual colums or a list of colums (e.g. columns with many NA)
+    drop_columns = [
+        i['column'] for i in filter_list
+        if i['operand'] in ['drop'] and i['value']
+    ]
+    drop_col_list = [
+        i['column'] for i in filter_list
+        if i['operand'] in ['drop_col_list'] and i['value']
+    ]
+    drop_col_list = [
+        waarde for sublijst in drop_col_list for waarde in sublijst
+    ]  # Flatten list since it might contain lists in lists
+
+    drop_columns += drop_col_list
+
+    df_return = df_return.drop(columns=drop_columns)
+
+    # Drop row with null values using a subset.
+    drop_na = [
+        i['column'] for i in filter_list
+        if i['operand'] in ['drop_na'] and i['value']
+    ]
+    if len(drop_na) == 1:
+        drop_na_subset = drop_na[0]
+        df_return = df_return.dropna(subset=drop_na_subset)
+    else:
+        drop_na_subset = []
+
+    # Print results
+    print('FILTER DATAFRAME:')
+    print('----------------')
+    print(f'Filter applied            : {query}')
+    print(f'Drop columns              : {drop_columns}')
+    print(f'Drop null values (subset) : {drop_na_subset}')
+    print()
+    print('SHAPE (rows, columns): ')
+    print(f'Shape before  : {df.shape}')
+    print(f'Shape after   : {df_return.shape}')
+
+    return (df_return)
