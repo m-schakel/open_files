@@ -448,6 +448,7 @@ def biplot(score, y, coeff, labels=None, plot_pc=(0, 1)):
     n = coeff.shape[0]
     scalex = 1.0 / (xs.max() - xs.min())
     scaley = 1.0 / (ys.max() - ys.min())
+    plt.figure(figsize=(12, 12))
     plt.scatter(xs * scalex, ys * scaley, c=y)
     for i in range(n):
         plt.arrow(0, 0, coeff[i, 0], coeff[i, 1], color='y', alpha=0.5)
