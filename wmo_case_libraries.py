@@ -511,7 +511,7 @@ def print_heatmap_pairplot(df, y_col, top_x, type='top', diagram='heatmap'):
     if diagram == 'pairplot':
         sns.set()
         sns.pairplot(df[columns], kind='reg', diag_kind='kde')
-        fig.suptitle(
+        fig.subtitle(
             f'Pairplot {type.capitalize()} {top_x} correlated numeric features including response Y'
         )
 
@@ -523,15 +523,13 @@ def print_heatmap_pairplot(df, y_col, top_x, type='top', diagram='heatmap'):
 #-----------------------------------------------------------------------------------------------------------------------#
 def generate_scatter(df, hue_value):
 
-    x_columns = list(
-        cbs_data_merged.select_dtypes(include=NUMERIC_TYPES).columns)
+    x_columns = list(df.select_dtypes(include=NUMERIC_TYPES).columns)
     x_select_box = alt.binding_select(options=x_columns, name='X-parameter: ')
     x_sel = alt.selection_single(fields=['x_column'],
                                  bind=x_select_box,
                                  init={'x_column': x_columns[0]})
 
-    y_columns = list(
-        cbs_data_merged.select_dtypes(include=NUMERIC_TYPES).columns)
+    y_columns = list(df.select_dtypes(include=NUMERIC_TYPES).columns)
     y_select_box = alt.binding_select(options=y_columns, name='Y-parameter: ')
     y_sel = alt.selection_single(
         fields=['y_column'],
@@ -586,6 +584,4 @@ def generate_scatter(df, hue_value):
                                          color='Black')
 
 
-generate_scatter(cbs_data_merged[cbs_data_merged['year'] == 2018],
-                 'part_country_name')
 #generate_scatter2( cbs_data_merged, 'year' )
