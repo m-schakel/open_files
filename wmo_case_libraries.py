@@ -435,3 +435,38 @@ def filter_dataframe(df, filter_list):
     print(f'Shape after   : {df_return.shape}')
 
     return (df_return)
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# filter_dataframe
+#-----------------------------------------------------------------------------------------------------------------------#
+# taken from https://stackoverflow.com/a/46766116/3197404
+# taken from https://stackoverflow.com/a/46766116/3197404
+def biplot(score, y, coeff, labels=None, plot_pc=(0, 1)):
+    xs = score[:, plot_pc[0]]
+    ys = score[:, plot_pc[1]]
+    n = coeff.shape[0]
+    scalex = 1.0 / (xs.max() - xs.min())
+    scaley = 1.0 / (ys.max() - ys.min())
+    plt.scatter(xs * scalex, ys * scaley, c=y)
+    for i in range(n):
+        plt.arrow(0, 0, coeff[i, 0], coeff[i, 1], color='y', alpha=0.5)
+        if labels is None:
+            plt.text(coeff[i, 0] * 1.15,
+                     coeff[i, 1] * 1.15,
+                     "Var" + str(i + 1),
+                     color='g',
+                     ha='center',
+                     va='center')
+        else:
+            plt.text(coeff[i, 0] * 1.15,
+                     coeff[i, 1] * 1.15,
+                     labels[i],
+                     color='g',
+                     ha='center',
+                     va='center')
+    plt.xlim(-.5, .5)
+    plt.ylim(-.5, .5)
+    plt.xlabel("Principle Component {}".format(plot_pc[0] + 1))
+    plt.ylabel("Principle Component {}".format(plot_pc[1] + 1))
+    plt.grid()
