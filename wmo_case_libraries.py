@@ -438,9 +438,8 @@ def filter_dataframe(df, filter_list):
 
 
 #-----------------------------------------------------------------------------------------------------------------------#
-# filter_dataframe
+# biplot
 #-----------------------------------------------------------------------------------------------------------------------#
-# taken from https://stackoverflow.com/a/46766116/3197404
 # taken from https://stackoverflow.com/a/46766116/3197404
 def biplot(score, y, coeff, labels=None, plot_pc=(0, 1)):
     xs = score[:, plot_pc[0]]
@@ -471,3 +470,122 @@ def biplot(score, y, coeff, labels=None, plot_pc=(0, 1)):
     plt.xlabel("Principle Component {}".format(plot_pc[0] + 1))
     plt.ylabel("Principle Component {}".format(plot_pc[1] + 1))
     plt.grid()
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# print_heatmap_pairplot
+#-----------------------------------------------------------------------------------------------------------------------#
+def print_heatmap_pairplot(df, y_col, top_x, type='top', diagram='heatmap'):
+    # Purpose: Print a heatmap with only the top X most correlated features.
+    # Example of execution: print_heatmap( df_num, 10)
+    # Arguments:
+    #   df                   = dataframe with only numeric predictors (X's) and the response (Y)
+    #   y_col                = name of response variable
+    #   top_x                = the number of bars
+    #   type                 = choose whether you want the top X or bottom X (top=default)
+    #   diagram              = type of diagram 'heatmap' (default) or 'pairplot'
+
+    sns.set(font_scale=1.2)
+    if type == 'top':
+        columns = df.corr().nlargest(top_x, y_col).index.values
+    else:
+        columns = df.corr().nsmallest(top_x, y_col).index.values
+        columns = columns.tolist()
+        columns.append(y_col) if y_col not in columns else columns
+
+    if diagram == 'heatmap':
+        # I used Pandas corr() in stead of np.corrcoef() since Pandas corr() is NaN friendly whereas NumPy not
+        plt.figure(figsize=A3_SIZE)
+        ax = plt.axes()
+        sns.heatmap(df[columns].corr(),
+                    cbar=True,
+                    annot=True,
+                    annot_kws={'size': 15},
+                    yticklabels=columns,
+                    xticklabels=columns,
+                    ax=ax)
+        ax.set_title(
+            f'Heatmap {type.capitalize()} {top_x} correlated numeric features including response Y'
+        )
+
+    if diagram == 'pairplot':
+        sns.set()
+        sns.pairplot(df[columns], kind='reg', diag_kind='kde')
+        fig.suptitle(
+            f'Pairplot {type.capitalize()} {top_x} correlated numeric features including response Y'
+        )
+
+    plt.show()
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# generate_scatter
+#-----------------------------------------------------------------------------------------------------------------------#
+def generate_scatter(df, hue_value):
+
+    x_columns = list(
+        cbs_data_merged.select_dtypes(include=NUMERIC_TYPES).columns)
+    x_select_box = alt.binding_select(options=x_columns, name='X-parameter: ')
+    x_sel = alt.selection_single(fields=['x_column'],
+                                 bind=x_select_box,
+                                 init={'x_column': x_columns[0]})
+
+    y_columns = list(
+        cbs_data_merged.select_dtypes(include=NUMERIC_TYPES).columns)
+    y_select_box = alt.binding_select(options=y_columns, name='Y-parameter: ')
+    y_sel = alt.selection_single(
+        fields=['y_column'],
+        bind=y_select_box,
+        init={'y_column': y_columns[len(y_columns) - 2]})
+
+    # selection of year for color/interactive legend selection
+    sel_hue = alt.selection_multi(fields=[hue_value])
+    # if you click on year in legend, rest will be gray; you can select multiple years by pressing shift
+    color = alt.condition(
+        sel_hue,
+        alt.Color(hue_value + ':N',
+                  legend=None,
+                  scale=alt.Scale(scheme='category10')),
+        alt.value('lightgray'))
+
+    # make main chart
+    chart = alt.Chart(df).transform_fold(
+        x_columns,
+        as_=['x_column',
+             'x_parameter']).transform_filter(x_sel).transform_fold(
+                 y_columns, as_=[
+                     'y_column', 'y_parameter'
+                 ]).transform_filter(y_sel).mark_point(opacity=0.4).encode(
+                     y=alt.Y('y_parameter:Q',
+                             axis=alt.Axis(title='Y-Parameter'),
+                             scale=alt.Scale(zero=False)),
+                     x=alt.X('x_parameter:Q',
+                             axis=alt.Axis(title='X-Parameter'),
+                             scale=alt.Scale(zero=False)),
+                     color=color,
+                     tooltip=[
+                         alt.Tooltip('year:N', title='Jaar'),
+                         alt.Tooltip('mun_name:N', title='Gemeente'),
+                         alt.Tooltip('clients_per_1000_inhabitants:N',
+                                     title='# Clients/1000 inh')
+                     ]).add_selection(sel_hue).add_selection(
+                         y_sel).add_selection(x_sel).properties(
+                             width=400,
+                             height=500,
+                             title='Correlation between two variables')
+
+    # make seperate 'plot' for legend
+    leg = alt.Chart(df).mark_point().encode(
+        y=alt.Y(hue_value + ':N', axis=alt.Axis(orient='right'), title=''),
+        size=alt.value(200),
+        color=color,
+    ).add_selection(sel_hue)
+
+    return (chart | leg).configure_title(fontSize=20,
+                                         anchor='start',
+                                         color='Black')
+
+
+generate_scatter(cbs_data_merged[cbs_data_merged['year'] == 2018],
+                 'part_country_name')
+#generate_scatter2( cbs_data_merged, 'year' )
