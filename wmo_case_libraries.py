@@ -776,3 +776,42 @@ def generate_map_with_barchart(df, gemeentes, legend_dict, value_col,
 #-----------------------------------------------------------------------------------------------------------------------#
 # generate_barchart_per_municipality
 #-----------------------------------------------------------------------------------------------------------------------#
+def generate_barchart_per_municipality(df, value_col, title):
+
+    df_pivot_mun = df.pivot(index='year', columns='mun_name', values=value_col)
+
+    # Convert columnnames to strings and reset index afterwards
+    df_pivot_mun.columns = df_pivot_mun.columns.astype(str)
+    df_pivot_mun = df_pivot_mun.reset_index()
+
+    # Remove punctuations from column names
+    res = {
+        c: remove_punctuations(c)
+        for c in df_pivot_mun.columns if set(punctuation) & set(c) - set(['-'])
+    }
+    df_pivot_mun.rename(columns=res, inplace=True)
+
+    gemeenten = sorted([
+        c for c in list(df_pivot_mun.columns)
+        if len(c) < 30 and c not in ['year']
+    ])
+    select_box = alt.binding_select(options=gemeenten, name='Gemeente: ')
+    sel = alt.selection_single(fields=['Gemeente'],
+                               bind=select_box,
+                               init={'Gemeente': 'Gemert-Bakel'})
+
+    chart = alt.Chart(df_pivot_mun).transform_fold(
+        gemeenten,
+        as_=['Gemeente', 'value']).transform_filter(sel).mark_bar().encode(
+            x=alt.X('year:O', title='Jaar'),
+            y=alt.X('value:Q', title='Aantal'),
+            tooltip=[
+                alt.Tooltip('Jaar:O', title="Jaar"),
+                alt.Tooltip('value:Q', title='Waarde')
+            ],
+        ).add_selection(sel).properties(
+            width=500, height=325,
+            title=title).configure_view(strokeWidth=0).configure_title(
+                fontSize=20, anchor='start', color='Black')
+
+    return chart
