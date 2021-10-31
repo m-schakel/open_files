@@ -511,9 +511,9 @@ def print_heatmap_pairplot(df, y_col, top_x, type='top', diagram='heatmap'):
     if diagram == 'pairplot':
         sns.set()
         sns.pairplot(df[columns], kind='reg', diag_kind='kde')
-        fig.subtitle(
-            f'Pairplot {type.capitalize()} {top_x} correlated numeric features including response Y'
-        )
+        #fig.subtitle(
+        #    f'Pairplot {type.capitalize()} {top_x} correlated numeric features including response Y'
+        #)
 
     plt.show()
 
@@ -584,4 +584,136 @@ def generate_scatter(df, hue_value):
                                          color='Black')
 
 
-#generate_scatter2( cbs_data_merged, 'year' )
+#-----------------------------------------------------------------------------------------------------------------------#
+# generate_map_yearslider
+#-----------------------------------------------------------------------------------------------------------------------#
+# Color schemes: https://vega.github.io/vega/docs/schemes/
+def generate_map_yearslider(df, gemeentes, legend_title, chart_title):
+
+    # Pivot dataframe to create column per year.
+    df_pivot = df.pivot(index='mun_name',
+                        columns='year',
+                        values='clients_per_1000_inhabitants').reset_index()
+    df_pivot.columns = df_pivot.columns.map(str)
+
+    min_val = max(15, min(df['clients_per_1000_inhabitants']))
+    max_val = max(df['clients_per_1000_inhabitants'])
+
+    columns = [
+        str(year) for year in range(int(min(df['year'])),
+                                    int(max(df['year'])) + 1)
+    ]
+    slider = alt.binding_range(min=int(min(df['year'])),
+                               max=int(max(df['year'])),
+                               step=1,
+                               name='Selecteer een jaar:')
+    select_year = alt.selection_single(name="Selector",
+                                       fields=['year'],
+                                       bind=slider,
+                                       init={'year': int(max(df['year']))})
+
+    cell_prefix = 'Y'
+
+    chart = alt.Chart(gemeentes).mark_geoshape(
+        stroke='black', strokeWidth=0.05).transform_lookup(
+            lookup='properties.statnaam',
+            from_=alt.LookupData(df_pivot, 'mun_name', columns),
+            default='200').transform_fold(columns, as_=[
+                'year', cell_prefix
+            ]).transform_calculate(year='parseInt(datum.year)').encode(
+                tooltip=[
+                    alt.Tooltip('properties.statnaam:N', title="Gemeente"),
+                    alt.Tooltip(cell_prefix + ':Q', title=legend_title),
+                    alt.Tooltip('year:Q', title='Jaar')
+                ],
+                color=alt.condition(
+                    'datum.' + cell_prefix + ' > 0',
+                    alt.Color(cell_prefix + ':Q',
+                              scale=alt.Scale(scheme='yelloworangered',
+                                              type='symlog',
+                                              domain=[min_val, max_val]),
+                              sort='ascending',
+                              legend=alt.Legend(orient='top',
+                                                title=legend_title,
+                                                gradientLength=330,
+                                                tickCount=4,
+                                                titleLimit=200)),
+                    alt.value('#dbe9f6'))).add_selection(
+                        select_year).properties(
+                            width=400, height=500,
+                            title=chart_title).transform_filter(
+                                select_year).configure_view(
+                                    strokeWidth=0).configure_title(
+                                        fontSize=20,
+                                        anchor='start',
+                                        color='Black')
+
+    return (chart)
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# generate_map_value
+#-----------------------------------------------------------------------------------------------------------------------#
+def generate_map_value(df, gemeentes, value_col, title):
+
+    max_val = max(df.loc[~df[value_col].isna(), value_col])
+    min_val = min(df.loc[~df[value_col].isna(), value_col])
+
+    chart = alt.Chart(gemeentes).mark_geoshape(
+        stroke='black', strokeWidth=0.05).transform_lookup(
+            lookup='properties.statnaam',
+            from_=alt.LookupData(df, 'mun_name', [value_col]),
+            default='200').encode(
+                tooltip=[
+                    alt.Tooltip('properties.statnaam:N', title="Gemeente"),
+                    alt.Tooltip(value_col + ':Q', title=title)
+                ],
+                color=alt.Color(value_col + ':Q',
+                                scale=alt.Scale(scheme='yelloworangered',
+                                                type='linear',
+                                                domain=[min_val, max_val]),
+                                sort='ascending',
+                                legend=alt.Legend(
+                                    orient='top',
+                                    title=title,
+                                    gradientLength=330,
+                                    tickCount=4,
+                                    titleLimit=200))).properties(
+                                        width=400, height=500,
+                                        title=title).configure_title(
+                                            fontSize=20,
+                                            anchor='start',
+                                            color='Black')
+
+    return (chart)
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# generate_map_groupedvalue
+#-----------------------------------------------------------------------------------------------------------------------#
+def generate_map_groupedvalue(df, gemeentes, value_col, title, sort_list):
+
+    chart = alt.Chart(gemeentes).mark_geoshape(
+        stroke='black', strokeWidth=0.05).transform_lookup(
+            lookup='properties.statnaam',
+            from_=alt.LookupData(df, 'mun_name', [value_col])).encode(
+                tooltip=[
+                    alt.Tooltip('properties.statnaam:N', title="Gemeente"),
+                    alt.Tooltip(value_col + ':N', title=title)
+                ],
+                color=alt.Color(value_col + ':N',
+                                scale=alt.Scale(scheme='turbo'),
+                                sort=sort_list,
+                                legend=alt.Legend(
+                                    orient='top',
+                                    title=title,
+                                    gradientLength=330,
+                                    tickCount=4,
+                                    titleLimit=200))).properties(
+                                        width=400, height=500,
+                                        title=title).configure_title(
+                                            fontSize=20,
+                                            anchor='start',
+                                            color='Black')
+
+    return (chart)
