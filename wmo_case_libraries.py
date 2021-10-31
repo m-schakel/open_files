@@ -849,8 +849,8 @@ def shift_num_clients_1year(df):
 #-----------------------------------------------------------------------------------------------------------------------#
 # split_column_over_years
 #-----------------------------------------------------------------------------------------------------------------------#
-def split_column_over_years(df, split_columns, index_column, split_by,
-                            base_year, y):
+def split_columns_over_years(df, split_columns, index_column, split_by,
+                             base_year, y):
 
     min_year = df[split_by].min()
     max_year = df[split_by].max()
