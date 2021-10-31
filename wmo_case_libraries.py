@@ -815,3 +815,110 @@ def generate_barchart_per_municipality(df, value_col, title):
                 fontSize=20, anchor='start', color='Black')
 
     return chart
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# shift_num_clients_1year
+#-----------------------------------------------------------------------------------------------------------------------#
+def shift_num_clients_1year(df):
+    # Shift the client_per_1000_inhabitants with one year. Since this has to be done per municipality a trick is performed to create some sort of group per municipality
+    # Based on example: https://dfrieds.com/data-analysis/shift-method-python-pandas.html
+    #df = cbs_data_merged.copy()
+
+    # Create a column where we shift the municipality code with -1 periods
+    df.sort_values(by=['mun_code', 'year'], inplace=True)
+    df['prev_mun_code'] = df['mun_code'].shift(periods=-1)
+
+    # Create a column clients_per_1000_inhabitants_ny with the value of clients_per_1000_inhabitants from the next observation/record (shift period -1)
+    df['clients_per_1000_inhabitants_ny'] = df[
+        'clients_per_1000_inhabitants'].shift(periods=-1)
+
+    # Filter only the records where prev_mun_code and mun_code are the same. This will result in loosing the observations of the last year (2020)
+    df = df.where(df['prev_mun_code'] == df['mun_code'])
+
+    #df_test.loc[df_test['mun_name']=='Tilburg',['year','mun_code','prev_mun_code','mun_name','clients_per_1000_inhabitants','clients_per_1000_inhabitants_ny']].head()
+    df.drop(columns='prev_mun_code', inplace=True)
+
+    #df[columns_categorical_with_NA]
+    df['clients_per_1000_inhabitants_ny'].fillna(
+        value=df['clients_per_1000_inhabitants_ny'].mean(), inplace=True)
+
+    return (df)
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# split_column_over_years
+#-----------------------------------------------------------------------------------------------------------------------#
+def split_column_over_years(df, split_columns, index_column, split_by,
+                            base_year, y):
+
+    min_year = df[split_by].min()
+    max_year = df[split_by].max()
+    max_year_min1 = df[split_by].max() - 1
+
+    # Create dataframe for all other columns than the y column since we need to exclude the last year (max) and pivot
+    temp1 = df.loc[df[split_by] != max_year, [index_column, split_by] +
+                   [x for x in split_columns if x != y]]
+    tmp_pivot1 = temp1.pivot(index=index_column,
+                             columns=split_by,
+                             values=[x for x in split_columns
+                                     if x != y]).reset_index()
+
+    # Create dataframe for the y columns since we need all years and pivot
+    temp2 = df.loc[:, [index_column, split_by] +
+                   [x for x in split_columns if x == y]]
+    tmp_pivot2 = temp2.pivot(index=index_column,
+                             columns=split_by,
+                             values=[x for x in split_columns
+                                     if x == y]).reset_index()
+
+    # Rename the columns
+    tmp_pivot1.columns = [
+        ''.join(map(str, col)).strip() for col in tmp_pivot1.columns.values
+    ]
+    tmp_pivot2.columns = [
+        ''.join(map(str, col)).strip() for col in tmp_pivot2.columns.values
+    ]
+
+    df_return = df.loc[df[split_by] == base_year,
+                       [x for x in df.columns if not x in split_columns]]
+
+    df_return = df_return.merge(tmp_pivot1, on=index_column)
+    df_return = df_return.merge(tmp_pivot2, on=index_column)
+
+    df_return['num_NaN_WMO'] = df_return.loc[:, y + str(min_year):y +
+                                             str(max_year_min1)].isna().sum(
+                                                 axis=1)
+
+    # Add slope and intercept (by Marcel)
+    A = np.vstack([np.arange(0, 3), np.ones(3)]).T
+    for col in split_columns:
+        # Calculate slope
+        df_return[col + '_slope'] = [
+            np.linalg.lstsq(A,
+                            df_return.loc[:, col + str(min_year):col +
+                                          str(max_year_min1)].values[i],
+                            rcond=None)[0].round(2)[0]
+            for i in range(len(df_return))
+        ]
+
+        # Calculate intercept
+        df_return[col + '_intercept'] = [
+            np.linalg.lstsq(A,
+                            df_return.loc[:, col + str(min_year):col +
+                                          str(max_year_min1)].values[i],
+                            rcond=None)[0].round(2)[1]
+            for i in range(len(df_return))
+        ]
+
+        # Calculate standard deviation
+        df_return[col + '_std'] = df_return.loc[:, col + str(min_year):col +
+                                                str(max_year_min1)].std(axis=1)
+
+        # Calculate standard deviation (normalized)
+        df_return[col + '_std_norm'] = df_return.loc[:, col + str(
+            min_year):col + str(max_year_min1)].std(
+                axis=1) / df_return.loc[:, col + str(min_year):col +
+                                        str(max_year_min1)].mean(axis=1)
+
+    return (df_return)
