@@ -717,3 +717,50 @@ def generate_map_groupedvalue(df, gemeentes, value_col, title, sort_list):
                                             color='Black')
 
     return (chart)
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# generate_map_with_barchart
+#-----------------------------------------------------------------------------------------------------------------------#
+def generate_map_with_barchart(df, gemeentes, legend_dict, value_col,
+                               barchar_cols, title, sort_list):
+    # selection based on click on the map
+    single = alt.selection_single(fields=['mun_name'])  #, bind='legend')
+
+    color = alt.Color(value_col + ':N',
+                      scale=alt.Scale(scheme='turbo'),
+                      sort=sort_list,
+                      legend=alt.Legend(orient='top',
+                                        title=title,
+                                        gradientLength=330,
+                                        tickCount=4,
+                                        titleLimit=200))
+
+    # make the map and color based on std groups
+    ch1 = alt.Chart(gemeentes).mark_geoshape(
+        stroke='black', strokeWidth=0.05).transform_lookup(
+            lookup='id',
+            from_=alt.LookupData(
+                df, 'mun_code',
+                [key[0:-2] for (key, val) in legend_dict.items()]),
+            default='null').encode(
+                tooltip=[
+                    alt.Tooltip(shorthand=key, title=val)
+                    for (key, val) in legend_dict.items()
+                ],
+                color=color,
+                opacity=alt.condition(
+                    single, alt.value(1),
+                    alt.value(0.3))).add_selection(single).properties(
+                        width=400, height=500, title=title)
+
+    # extract the data per year again and change by selecting the gemeente
+    bar = alt.Chart(df).transform_fold(barchar_cols, ).mark_bar().encode(
+        x='key:N',
+        y='value:Q',
+    ).transform_filter(single)
+
+    # show them next to each other
+    return (ch1 | bar).configure_title(fontSize=20,
+                                       anchor='start',
+                                       color='Black')
