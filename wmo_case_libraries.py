@@ -723,7 +723,7 @@ def generate_map_groupedvalue(df, gemeentes, value_col, title, sort_list):
 # generate_map_with_barchart
 #-----------------------------------------------------------------------------------------------------------------------#
 def generate_map_with_barchart(df, gemeentes, legend_dict, value_col,
-                               barchar_cols, title, sort_list):
+                               barchart_cols, title, sort_list):
     # selection based on click on the map
     single = alt.selection_single(fields=['mun_name'])  #, bind='legend')
 
@@ -755,7 +755,7 @@ def generate_map_with_barchart(df, gemeentes, legend_dict, value_col,
                         width=400, height=500, title=title)
 
     # extract the data per year again and change by selecting the gemeente
-    bar = alt.Chart(df).transform_fold(barchar_cols, ).mark_bar().encode(
+    bar = alt.Chart(df).transform_fold(barchart_cols, ).mark_bar().encode(
         x='key:N',
         y='value:Q',
     ).transform_filter(single)
