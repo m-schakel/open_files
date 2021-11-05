@@ -472,8 +472,8 @@ def biplot(score, y, coeff, labels=None, plot_pc=(0, 1)):
                      color='g',
                      ha='center',
                      va='center')
-    plt.xlim(-.5, .5)
-    plt.ylim(-.5, .5)
+    plt.xlim(-1, 1)
+    plt.ylim(-1, 1)
     plt.xlabel("Principle Component {}".format(plot_pc[0] + 1))
     plt.ylabel("Principle Component {}".format(plot_pc[1] + 1))
     plt.grid()
