@@ -898,8 +898,7 @@ def split_columns_over_years(df, split_columns, index_column, split_by,
             np.linalg.lstsq(A,
                             df_return.loc[:, col + str(min_year):col +
                                           str(max_year_min1)].values[i],
-                            rcond=None)[0].round(2)[0]
-            for i in range(len(df_return))
+                            rcond=None)[0][0] for i in range(len(df_return))
         ]
 
         # Calculate intercept
@@ -907,8 +906,7 @@ def split_columns_over_years(df, split_columns, index_column, split_by,
             np.linalg.lstsq(A,
                             df_return.loc[:, col + str(min_year):col +
                                           str(max_year_min1)].values[i],
-                            rcond=None)[0].round(2)[1]
-            for i in range(len(df_return))
+                            rcond=None)[0][1] for i in range(len(df_return))
         ]
 
         # Calculate standard deviation
