@@ -763,14 +763,18 @@ def generate_map_with_barchart(df, gemeentes, legend_dict, value_col,
 
     # extract the data per year again and change by selecting the gemeente
     bar = alt.Chart(df).transform_fold(barchart_cols, ).mark_bar().encode(
-        x='key:N',
-        y='value:Q',
+        y='key:N',
+        x='value:Q',
     ).transform_filter(single)
 
+    # add textlabels to barchart
+    text = bar.mark_text(align='left', baseline='middle', dx=3).encode(
+        text=alt.Text('value:Q', format=',.2f')).transform_filter(single)
+
     # show them next to each other
-    return (ch1 | bar).configure_title(fontSize=20,
-                                       anchor='start',
-                                       color='Black')
+    return (ch1 | bar + text).configure_title(fontSize=20,
+                                              anchor='start',
+                                              color='Black')
 
 
 #-----------------------------------------------------------------------------------------------------------------------#
