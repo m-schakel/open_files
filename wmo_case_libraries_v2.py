@@ -698,30 +698,38 @@ def generate_map_value(df, gemeentes, value_col, title):
 #-----------------------------------------------------------------------------------------------------------------------#
 # generate_map_groupedvalue
 #-----------------------------------------------------------------------------------------------------------------------#
-def generate_map_groupedvalue(df, gemeentes, value_col, title, sort_list):
+def generate_map_groupedvalue(df, gemeentes, value_col, title, cut_bins,
+                              cut_labels):
+
+    df['grp_value'] = pd.cut(df[value_col], bins=cut_bins, labels=cut_labels)
+    df['grp_value'].cat.add_categories('0. missing', inplace=True)
+    df['grp_value'].fillna('0. missing', inplace=True)
+    cut_labels = ['0. missing'] + cut_labels
+
+    color = alt.Color('grp_value:N',
+                      scale=alt.Scale(scheme='turbo'),
+                      sort=cut_labels,
+                      legend=alt.Legend(orient='top',
+                                        title=title,
+                                        gradientLength=330,
+                                        tickCount=4,
+                                        titleLimit=200))
 
     chart = alt.Chart(gemeentes).mark_geoshape(
         stroke='black', strokeWidth=0.05).transform_lookup(
             lookup='properties.statnaam',
-            from_=alt.LookupData(df, 'mun_name', [value_col])).encode(
-                tooltip=[
-                    alt.Tooltip('properties.statnaam:N', title="Gemeente"),
-                    alt.Tooltip(value_col + ':N', title=title)
-                ],
-                color=alt.Color(value_col + ':N',
-                                scale=alt.Scale(scheme='turbo'),
-                                sort=sort_list,
-                                legend=alt.Legend(
-                                    orient='top',
-                                    title=title,
-                                    gradientLength=330,
-                                    tickCount=4,
-                                    titleLimit=200))).properties(
-                                        width=400, height=500,
-                                        title=title).configure_title(
-                                            fontSize=20,
-                                            anchor='start',
-                                            color='Black')
+            from_=alt.LookupData(df, 'mun_name', ['grp_value']),
+            default='0. missing').encode(tooltip=[
+                alt.Tooltip('properties.statnaam:N', title="Gemeente"),
+                alt.Tooltip('grp_value:N', title=title)
+            ],
+                                         color=color).properties(
+                                             width=400,
+                                             height=500,
+                                             title=title).configure_title(
+                                                 fontSize=20,
+                                                 anchor='start',
+                                                 color='Black')
 
     return (chart)
 
