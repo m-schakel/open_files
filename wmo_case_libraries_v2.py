@@ -799,9 +799,10 @@ def generate_map_with_barchart(df, gemeentes, legend_dict, value_col,
 def generate_map_valueslider(df, gemeentes, value_col, title, legend_title):
 
     # Make copy of valuecolumn since it was not possible to work with a dynamically named value column in the slider condition
-    df['value'] = df[value_col]
-    max_val = np.round(max(df.loc[~df[value_col].isna(), value_col]), 5) + 0.1
-    min_val = np.round(min(df.loc[~df[value_col].isna(), value_col]), 5)
+    df['tmp_value'] = df[value_col]
+    max_val = np.round(max(df.loc[~df['tmp_value'].isna(), 'tmp_value']),
+                       5) + 0.1
+    min_val = np.round(min(df.loc[~df['tmp_value'].isna(), 'tmp_value']), 5)
 
     slider = alt.binding_range(min=min_val,
                                max=max_val,
@@ -815,15 +816,15 @@ def generate_map_valueslider(df, gemeentes, value_col, title, legend_title):
     chart = alt.Chart(gemeentes).mark_geoshape(
         stroke='black', strokeWidth=0.05).transform_lookup(
             lookup='properties.statnaam',
-            from_=alt.LookupData(df, 'mun_name', [value_col]),
+            from_=alt.LookupData(df, 'mun_name', ['tmp_value']),
             default='90').encode(
                 tooltip=[
                     alt.Tooltip('properties.statnaam:N', title="Gemeente"),
-                    alt.Tooltip(value_col + ':Q', title=legend_title)
+                    alt.Tooltip('tmp_value:Q', title=legend_title)
                 ],
                 color=alt.condition(
-                    alt.datum.Abs_diff < selector.cutoff,
-                    alt.Color(value_col + ':Q',
+                    alt.datum.tmp_value < selector.cutoff,
+                    alt.Color('tmp_value:Q',
                               scale=alt.Scale(scheme='yellowgreen',
                                               type='linear',
                                               domain=[min_val, max_val]),
