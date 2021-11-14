@@ -730,58 +730,7 @@ def generate_map_groupedvalue(df, gemeentes, value_col, title, sort_list):
 # generate_map_with_barchart
 #-----------------------------------------------------------------------------------------------------------------------#
 def generate_map_with_barchart(df, gemeentes, legend_dict, value_col,
-                               barchart_cols, title, sort_list):
-    # selection based on click on the map
-    single = alt.selection_single(fields=['mun_name'])  #, bind='legend')
-
-    color = alt.Color(value_col + ':N',
-                      scale=alt.Scale(scheme='turbo'),
-                      sort=sort_list,
-                      legend=alt.Legend(orient='top',
-                                        title=title,
-                                        gradientLength=330,
-                                        tickCount=4,
-                                        titleLimit=200))
-
-    # make the map and color based on std groups
-    ch1 = alt.Chart(gemeentes).mark_geoshape(
-        stroke='black', strokeWidth=0.05).transform_lookup(
-            lookup='id',
-            from_=alt.LookupData(
-                df, 'mun_code',
-                [key[0:-2] for (key, val) in legend_dict.items()]),
-            default='null').encode(
-                tooltip=[
-                    alt.Tooltip(shorthand=key, title=val)
-                    for (key, val) in legend_dict.items()
-                ],
-                color=color,
-                opacity=alt.condition(
-                    single, alt.value(1),
-                    alt.value(0.3))).add_selection(single).properties(
-                        width=400, height=500, title=title)
-
-    # extract the data per year again and change by selecting the gemeente
-    bar = alt.Chart(df).transform_fold(barchart_cols, ).mark_bar().encode(
-        y='key:N',
-        x='value:Q',
-    ).transform_filter(single)
-
-    # add textlabels to barchart
-    text = bar.mark_text(align='left', baseline='middle', dx=3).encode(
-        text=alt.Text('value:Q', format=',.2f')).transform_filter(single)
-
-    # show them next to each other
-    return (ch1 | bar + text).configure_title(fontSize=20,
-                                              anchor='start',
-                                              color='Black')
-
-
-#-----------------------------------------------------------------------------------------------------------------------#
-# generate_map_with_barchart_v2
-#-----------------------------------------------------------------------------------------------------------------------#
-def generate_map_with_barchart_v2(df, gemeentes, legend_dict, value_col,
-                                  barchart_cols, title, cut_bins, cut_labels):
+                               barchart_cols, title, cut_bins, cut_labels):
 
     df['grp_value'] = pd.cut(df[value_col], bins=cut_bins, labels=cut_labels)
     df['grp_value'].cat.add_categories('0. missing', inplace=True)
@@ -834,6 +783,93 @@ def generate_map_with_barchart_v2(df, gemeentes, legend_dict, value_col,
     return (ch1 | bar + text).configure_title(fontSize=20,
                                               anchor='start',
                                               color='Black')
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# generate_map_valueslider
+#-----------------------------------------------------------------------------------------------------------------------#
+def generate_map_valueslider(df, gemeentes, value_col, title, legend_title):
+
+    # Make copy of valuecolumn since it was not possible to work with a dynamically named value column in the slider condition
+    df['value'] = df[value_col]
+    max_val = np.round(max(df.loc[~df[value_col].isna(), value_col]), 5) + 0.1
+    min_val = np.round(min(df.loc[~df[value_col].isna(), value_col]), 5)
+
+    slider = alt.binding_range(min=min_val,
+                               max=max_val,
+                               step=0.1,
+                               name='cutoff:')
+    selector = alt.selection_single(name="SelectorName",
+                                    fields=['cutoff'],
+                                    bind=slider,
+                                    init={'cutoff': min_val})
+
+    chart = alt.Chart(gemeentes).mark_geoshape(
+        stroke='black', strokeWidth=0.05).transform_lookup(
+            lookup='properties.statnaam',
+            from_=alt.LookupData(df, 'mun_name', [value_col]),
+            default='90').encode(
+                tooltip=[
+                    alt.Tooltip('properties.statnaam:N', title="Gemeente"),
+                    alt.Tooltip(value_col + ':Q', title=legend_title)
+                ],
+                color=alt.condition(
+                    alt.datum.Abs_diff < selector.cutoff,
+                    alt.Color(value_col + ':Q',
+                              scale=alt.Scale(scheme='yellowgreen',
+                                              type='linear',
+                                              domain=[min_val, max_val]),
+                              sort='descending',
+                              legend=alt.Legend(orient='top',
+                                                title=legend_title,
+                                                gradientLength=330,
+                                                tickCount=4,
+                                                titleLimit=200)),
+                    alt.value('red'))).properties(
+                        width=400, height=500, title=title).configure_title(
+                            fontSize=20, anchor='start',
+                            color='Black').add_selection(selector)
+
+    return (chart)
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# generate_map_valueslider_redgreen
+#-----------------------------------------------------------------------------------------------------------------------#
+def generate_map_valueslider_redgreen(df, gemeentes, value_col, title,
+                                      legend_title):
+
+    df['tmp_value'] = df[value_col]
+    max_val = np.round(max(df.loc[~df['tmp_value'].isna(), 'tmp_value']),
+                       5) + 0.1
+    min_val = np.round(min(df.loc[~df['tmp_value'].isna(), 'tmp_value']), 5)
+
+    slider = alt.binding_range(min=min_val,
+                               max=max_val,
+                               step=0.1,
+                               name='cutoff:')
+    selector = alt.selection_single(name="SelectorName",
+                                    fields=['cutoff'],
+                                    bind=slider,
+                                    init={'cutoff': min_val})
+
+    chart = alt.Chart(gemeentes).mark_geoshape(
+        stroke='black', strokeWidth=0.05).transform_lookup(
+            lookup='properties.statnaam',
+            from_=alt.LookupData(df, 'mun_name', ['tmp_value']),
+            default='null').encode(
+                tooltip=[
+                    alt.Tooltip('properties.statnaam:N', title="Gemeente"),
+                    alt.Tooltip('tmp_value:Q', title=legend_title)
+                ],
+                color=alt.condition(
+                    alt.datum.tmp_value < selector.cutoff, alt.value('green'),
+                    alt.value('red'))).properties(
+                        width=400, height=500, title=title).configure_title(
+                            fontSize=20, anchor='start',
+                            color='Black').add_selection(selector)
+
+    return (chart)
 
 
 #-----------------------------------------------------------------------------------------------------------------------#
