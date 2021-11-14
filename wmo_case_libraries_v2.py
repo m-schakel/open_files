@@ -948,8 +948,13 @@ def shift_num_clients_1year(df):
 #-----------------------------------------------------------------------------------------------------------------------#
 # split_column_over_years
 #-----------------------------------------------------------------------------------------------------------------------#
-def split_columns_over_years(df, split_columns, index_column, split_by,
-                             base_year, y):
+def split_columns_over_years(df,
+                             split_columns,
+                             index_column,
+                             split_by,
+                             base_year,
+                             y,
+                             intpl=False):
 
     min_year = df[split_by].min()
     max_year = df[split_by].max()
@@ -989,6 +994,16 @@ def split_columns_over_years(df, split_columns, index_column, split_by,
                                              str(max_year_min1)].isna().sum(
                                                  axis=1)
 
+    # add interpolation if intpl == True before you calculate std etc.
+    if intpl:
+        for col in split_columns:
+            df_return.loc[:, col + str(min_year):col +
+                          str(max_year_min1)] = df_return.loc[:, col + str(
+                              min_year):col + str(max_year_min1)].interpolate(
+                                  axis=1,
+                                  method='linear',
+                                  limit_direction='both')
+
     # Add slope and intercept (by Marcel)
     A = np.vstack([np.arange(0, 3), np.ones(3)]).T
     for col in split_columns:
@@ -1019,3 +1034,50 @@ def split_columns_over_years(df, split_columns, index_column, split_by,
                                         str(max_year_min1)].mean(axis=1)
 
     return (df_return)
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
+# prepare_dataset
+#-----------------------------------------------------------------------------------------------------------------------#
+def prepare_dataset(df, y, missing, test_size, random_state):
+
+    tmp_df = lower_memory_usage(df)
+
+    df_train, df_test = train_test_split(tmp_df,
+                                         test_size=test_size,
+                                         random_state=random_state)
+
+    X_train = df_train.drop(columns=[y])
+    y_train = df_train[y]
+    #y_train = np.log(df_train[Y_COL])
+
+    # Same for test set
+    X_test = df_test.drop(columns=[y])
+    y_test = df_test[y]
+    #y_test = np.log(df_test[Y_COL])
+
+    # Using the log() gave the error "ValueError: Input contains NaN, infinity or a value too large for dtype('float32')."
+    # Probably due to the fact that there are zero's in the dataset.
+    # Have to check: https://datascience.stackexchange.com/questions/11928/valueerror-input-contains-nan-infinity-or-a-value-too-large-for-dtypefloat32
+
+    cat_cols = X_train.select_dtypes(include='category').columns
+    num_cols = X_train.select_dtypes(include='number').columns
+
+    # Fill missing values for categorical features with the value given by the constante parameter missing
+
+    # First you have to add the constante value to the available categories in each categorical column
+    # Otherwise you'll get an error "fill value must be in categories" in the next command.
+
+    for col in cat_cols:
+        if missing not in df[col].cat.categories:
+            df[col].cat.add_categories(missing, inplace=True)
+
+    categories = [df[column].cat.categories for column in cat_cols]
+
+    print(f'\nShape dataframe : {df.shape}')
+    print(f'Shape X_train   : {X_train.shape}')
+    print(f'Shape X_test    : {X_test.shape}')
+    print(f'Shape y_train   : {y_train.shape}')
+    print(f'Shape y_test    : {y_test.shape}')
+
+    return (X_train, y_train, X_test, y_test, cat_cols, num_cols, categories)
