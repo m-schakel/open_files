@@ -1077,15 +1077,16 @@ def prepare_dataset(df, y, missing, test_size, random_state):
     # Otherwise you'll get an error "fill value must be in categories" in the next command.
 
     for col in cat_cols:
-        if missing not in df[col].cat.categories:
-            df[col].cat.add_categories(missing, inplace=True)
+        if missing not in tmp_df[col].cat.categories:
+            tmp_df[col].cat.add_categories(missing, inplace=True)
 
-    categories = [df[column].cat.categories for column in cat_cols]
+    categories = [tmp_df[column].cat.categories for column in cat_cols]
 
-    print(f'\nShape dataframe : {df.shape}')
+    print(f'\nShape dataframe : {tmp_df.shape}')
     print(f'Shape X_train   : {X_train.shape}')
     print(f'Shape X_test    : {X_test.shape}')
     print(f'Shape y_train   : {y_train.shape}')
     print(f'Shape y_test    : {y_test.shape}')
 
-    return (X_train, y_train, X_test, y_test, cat_cols, num_cols, categories)
+    return (tmp_df, X_train, y_train, X_test, y_test, cat_cols, num_cols,
+            categories)
