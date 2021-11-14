@@ -796,7 +796,12 @@ def generate_map_with_barchart(df, gemeentes, legend_dict, value_col,
 #-----------------------------------------------------------------------------------------------------------------------#
 # generate_map_valueslider
 #-----------------------------------------------------------------------------------------------------------------------#
-def generate_map_valueslider(df, gemeentes, value_col, title, legend_title):
+def generate_map_valueslider(df,
+                             gemeentes,
+                             value_col,
+                             title,
+                             legend_title,
+                             step_size=0.1):
 
     # Make copy of valuecolumn since it was not possible to work with a dynamically named value column in the slider condition
     df['tmp_value'] = df[value_col]
@@ -806,7 +811,7 @@ def generate_map_valueslider(df, gemeentes, value_col, title, legend_title):
 
     slider = alt.binding_range(min=min_val,
                                max=max_val,
-                               step=0.1,
+                               step=step_size,
                                name='cutoff:')
     selector = alt.selection_single(name="SelectorName",
                                     fields=['cutoff'],
