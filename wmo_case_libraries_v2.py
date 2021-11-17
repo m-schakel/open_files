@@ -801,8 +801,7 @@ def generate_map_valueslider(df,
                              value_col,
                              title,
                              legend_title,
-                             step_size=0.1,
-                             title_fontsize=20):
+                             step_size=0.1):
 
     # Make copy of valuecolumn since it was not possible to work with a dynamically named value column in the slider condition
     df['tmp_value'] = df[value_col]
@@ -841,10 +840,8 @@ def generate_map_valueslider(df,
                                                 tickCount=4,
                                                 titleLimit=200)),
                     alt.value('red'))).properties(
-                        width=400, height=500, title=title).configure_title(
-                            fontSize=title_fontsize,
-                            anchor='start',
-                            color='Black').add_selection(selector)
+                        width=400, height=500,
+                        title=title).add_selection(selector)
 
     return (chart)
 
