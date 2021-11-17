@@ -801,7 +801,8 @@ def generate_map_valueslider(df,
                              value_col,
                              title,
                              legend_title,
-                             step_size=0.1):
+                             step_size=0.1,
+                             title_fontsize=20):
 
     # Make copy of valuecolumn since it was not possible to work with a dynamically named value column in the slider condition
     df['tmp_value'] = df[value_col]
@@ -822,7 +823,7 @@ def generate_map_valueslider(df,
         stroke='black', strokeWidth=0.05).transform_lookup(
             lookup='properties.statnaam',
             from_=alt.LookupData(df, 'mun_name', ['tmp_value']),
-            default='90').encode(
+            default='-100').encode(
                 tooltip=[
                     alt.Tooltip('properties.statnaam:N', title="Gemeente"),
                     alt.Tooltip('tmp_value:Q', title=legend_title)
@@ -841,7 +842,8 @@ def generate_map_valueslider(df,
                                                 titleLimit=200)),
                     alt.value('red'))).properties(
                         width=400, height=500, title=title).configure_title(
-                            fontSize=20, anchor='start',
+                            fontSize=title_fontsize,
+                            anchor='start',
                             color='Black').add_selection(selector)
 
     return (chart)
