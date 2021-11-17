@@ -847,6 +847,52 @@ def generate_map_valueslider(df,
 
 
 #-----------------------------------------------------------------------------------------------------------------------#
+# generate_map_valueslider_with_barchart
+#-----------------------------------------------------------------------------------------------------------------------#
+def generate_map_valueslider_with_barchart(df,
+                                           df_perf,
+                                           gemeentes,
+                                           value_col,
+                                           title,
+                                           legend_title,
+                                           step_size=0.1):
+
+    # Make copy of valuecolumn since it was not possible to work with a dynamically named value column in the slider condition
+    df['tmp_value'] = df[value_col]
+    max_val = np.round(max(df.loc[~df['tmp_value'].isna(), 'tmp_value']),
+                       3) + 0.1
+    min_val = np.round(min(df.loc[~df['tmp_value'].isna(), 'tmp_value']), 3)
+
+    slider = alt.binding_range(min=min_val,
+                               max=max_val,
+                               step=step_size,
+                               name='cutoff:')
+    selector = alt.selection_single(name="SelectorName",
+                                    fields=['cutoff'],
+                                    bind=slider,
+                                    init={'cutoff': min_val})
+
+    chart = generate_map_valueslider(df, gemeentes, value_col, title,
+                                     legend_title, step_size)
+
+    perf_ch = alt.Chart(df_perf).mark_bar().encode(
+        x=alt.X('pr:Q', axis=alt.Axis(title='Cutoff of model vs predicition')),
+        y=alt.Y('ac:Q', axis=alt.Axis(title='Percentage municipalities')),
+        color=alt.condition(
+            alt.datum.pr < selector.cutoff, alt.value('green'),
+            alt.value('red'))).properties(
+                width=300,
+                height=300,
+                title='Percentage municipalities less than cutoff (test-set)')
+
+    total_chart = (chart | perf_ch).configure_title(fontSize=12,
+                                                    anchor='start',
+                                                    color='Black')
+
+    return (total_chart)
+
+
+#-----------------------------------------------------------------------------------------------------------------------#
 # generate_map_valueslider_redgreen
 #-----------------------------------------------------------------------------------------------------------------------#
 def generate_map_valueslider_redgreen(df, gemeentes, value_col, title,
