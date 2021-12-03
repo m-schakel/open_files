@@ -397,7 +397,7 @@ def filter_dataframe(df, filter_list):
     query = ' & '.join([
         i['column'] + ' ' + i['operand'] + ' ' + str(i['value'])
         for i in filter_list
-        if i['operand'] in ['!=', '==', '<', '>', '<=', '>=', 'in']
+        if i['operand'] in ['!=', '==', '<', '>', '<=', '>=', 'in', 'not in']
     ])
     if query:
         df_return = df_return.query(query)
