@@ -595,7 +595,11 @@ def generate_scatter(df, hue_value):
 # generate_map_yearslider
 #-----------------------------------------------------------------------------------------------------------------------#
 # Color schemes: https://vega.github.io/vega/docs/schemes/
-def generate_map_yearslider(df, gemeentes, legend_title, chart_title):
+def generate_map_yearslider(df,
+                            gemeentes,
+                            legend_title,
+                            chart_title,
+                            default_value='200'):
 
     # Pivot dataframe to create column per year.
     df_pivot = df.pivot(index='mun_name',
@@ -625,35 +629,36 @@ def generate_map_yearslider(df, gemeentes, legend_title, chart_title):
         stroke='black', strokeWidth=0.05).transform_lookup(
             lookup='properties.statnaam',
             from_=alt.LookupData(df_pivot, 'mun_name', columns),
-            default='200').transform_fold(columns, as_=[
-                'year', cell_prefix
-            ]).transform_calculate(year='parseInt(datum.year)').encode(
-                tooltip=[
-                    alt.Tooltip('properties.statnaam:N', title="Gemeente"),
-                    alt.Tooltip(cell_prefix + ':Q', title=legend_title),
-                    alt.Tooltip('year:Q', title='Jaar')
-                ],
-                color=alt.condition(
-                    'datum.' + cell_prefix + ' > 0',
-                    alt.Color(cell_prefix + ':Q',
-                              scale=alt.Scale(scheme='yelloworangered',
-                                              type='symlog',
-                                              domain=[min_val, max_val]),
-                              sort='ascending',
-                              legend=alt.Legend(orient='top',
-                                                title=legend_title,
-                                                gradientLength=330,
-                                                tickCount=4,
-                                                titleLimit=200)),
-                    alt.value('#dbe9f6'))).add_selection(
-                        select_year).properties(
-                            width=400, height=500,
-                            title=chart_title).transform_filter(
-                                select_year).configure_view(
-                                    strokeWidth=0).configure_title(
-                                        fontSize=20,
-                                        anchor='start',
-                                        color='Black')
+            default=default_value).transform_fold(
+                columns, as_=[
+                    'year', cell_prefix
+                ]).transform_calculate(year='parseInt(datum.year)').encode(
+                    tooltip=[
+                        alt.Tooltip('properties.statnaam:N', title="Gemeente"),
+                        alt.Tooltip(cell_prefix + ':Q', title=legend_title),
+                        alt.Tooltip('year:Q', title='Jaar')
+                    ],
+                    color=alt.condition(
+                        'datum.' + cell_prefix + ' > 0',
+                        alt.Color(cell_prefix + ':Q',
+                                  scale=alt.Scale(scheme='yelloworangered',
+                                                  type='symlog',
+                                                  domain=[min_val, max_val]),
+                                  sort='ascending',
+                                  legend=alt.Legend(orient='top',
+                                                    title=legend_title,
+                                                    gradientLength=330,
+                                                    tickCount=4,
+                                                    titleLimit=200)),
+                        alt.value('#dbe9f6'))).add_selection(
+                            select_year).properties(
+                                width=400, height=500,
+                                title=chart_title).transform_filter(
+                                    select_year).configure_view(
+                                        strokeWidth=0).configure_title(
+                                            fontSize=20,
+                                            anchor='start',
+                                            color='Black')
 
     return (chart)
 
