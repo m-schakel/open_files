@@ -888,7 +888,7 @@ def generate_map_valueslider_with_barchart(df,
             alt.value('red'))).properties(
                 width=300,
                 height=300,
-                title='Percentage municipalities less than cutoff (test-set)')
+                title='Percentage municipalities less than cutoff')
 
     total_chart = (chart | perf_ch).configure_title(fontSize=12,
                                                     anchor='start',
